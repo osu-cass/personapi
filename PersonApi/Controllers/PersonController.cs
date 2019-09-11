@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PersonApi.Models;
+using PersonApi.Repositories;
 
 namespace PersonApi.Controllers
 {
@@ -14,24 +15,12 @@ namespace PersonApi.Controllers
     public class PersonController : ControllerBase
     {
         // The database context for a Person object.
-        private readonly PersonContext _context;
+        private readonly PersonRepository _repository;
 
-        // The constructor uses dependency injection to inject PersonContext (the database context) into the controller
-        public PersonController(PersonContext context)
+        // The constructor uses dependency injection to inject PersonRepository into the controller
+        public PersonController(IRepository<Person, int> repository)
         {
-            _context = context;
-
-            // *** Uncomment the below lines to automatically generate a couple people upon calling the API ***
-            if (_context.Persons.Count() == 0)
-            {
-                // Create a bunch of new persons if collection is empty,
-                // which means you can't delete all persons.
-                _context.Persons.Add(new Person { Name = "J.R.R Tolkien", LikesChocolate = true });
-                _context.Persons.Add(new Person { Name = "Harper Lee", LikesChocolate = true });
-                _context.Persons.Add(new Person { Name = "Edgar Allen Poe", LikesChocolate = false });
-                _context.Persons.Add(new Person { Name = "Arthur Conan Doyle", LikesChocolate = true });
-                _context.SaveChanges();
-            }
+            _repository = (PersonRepository)repository;
         }
 
         // GET: api/Person
@@ -41,9 +30,9 @@ namespace PersonApi.Controllers
         /// <returns>A list of all persons.</returns>
         /// <response code="200">Successfully returned a list of all persons.</response>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Person>>> GetPersons()
+        public IEnumerable<Person> GetPersons()
         {
-            return await _context.Persons.ToListAsync();
+            return _repository.GetAllPersons();
         }
 
         // GET: api/Person/ChocolateLovers
@@ -54,9 +43,9 @@ namespace PersonApi.Controllers
         /// <response code="200">Successfully returned a list of all persons that like chocolate.</response>
         [HttpGet]
         [Route("ChocolateLovers")]
-        public async Task<ActionResult<IEnumerable<Person>>> GetPersonsThatLikeChocolate()
+        public IEnumerable<Person> GetPersonsThatLikeChocolate()
         {
-            return await _context.Persons.Where(p => p.LikesChocolate == true).ToListAsync();
+            return _repository.GetAllPersons().Where(p => p.LikesChocolate == true);
         }
 
         // GET api/Person/5
@@ -69,7 +58,7 @@ namespace PersonApi.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Person>> GetPerson(long id)
         {
-            var person = await _context.Persons.FindAsync(id);
+            var person = await _repository.GetByIDAsync((int)id);
 
             if (person == null)
             {
@@ -101,8 +90,8 @@ namespace PersonApi.Controllers
         [HttpPost]
         public async Task<ActionResult<Person>> PostPerson(Person person)
         {
-            _context.Persons.Add(person);
-            await _context.SaveChangesAsync();
+            _repository.Insert(person);
+            await _repository.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetPerson), new { id = person.Id }, person);
         }
@@ -135,8 +124,8 @@ namespace PersonApi.Controllers
                 return BadRequest();
             }
 
-            _context.Entry(person).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
+            _repository.Update(person);
+            await _repository.SaveChangesAsync();
 
             return NoContent();
         }
@@ -151,15 +140,15 @@ namespace PersonApi.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePerson(long id)
         {
-            var person = await _context.Persons.FindAsync(id);
+            var person = await _repository.GetByIDAsync((int)id);
 
             if (person == null)
             {
                 return NotFound();
             }
 
-            _context.Persons.Remove(person);
-            await _context.SaveChangesAsync();
+            _repository.Delete((int)id);
+            await _repository.SaveChangesAsync();
 
             return NoContent();
         }

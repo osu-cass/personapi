@@ -13,9 +13,9 @@ using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using PersonApi.Models;
 using Microsoft.OpenApi.Models;
-using System;
 using System.Reflection;
 using System.IO;
+using PersonApi.Repositories;
 
 namespace PersonApi
 {
@@ -34,6 +34,8 @@ namespace PersonApi
             // Register the database context with the dependency injection container
             services.AddDbContext<PersonContext>(opt =>
                 opt.UseInMemoryDatabase("PersonList"));
+
+            services.AddScoped<IRepository<Person, int>, PersonRepository>();
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
