@@ -56,12 +56,13 @@ namespace PersonApi.Controllers
         /// <param name="id">The ID of the requested person.</param>
         /// <returns>The person requested.</returns>
         [HttpGet("{id}")]
-        public async Task<ActionResult<Person>> GetPerson(long id)
+        public async Task<ActionResult<Person>> GetPerson(int id)
         {
-            var person = await _repository.GetByIDAsync((int)id);
+            var person = await _repository.GetByIDAsync(id);
 
             if (person == null)
             {
+                //return NotFound($"Person with ID #{id} does not exist.");
                 return NotFound();
             }
 
@@ -138,16 +139,16 @@ namespace PersonApi.Controllers
         /// <returns>No content</returns>
         /// <response code="204">Successfully deleted the person. No content is returned.</response>
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeletePerson(long id)
+        public async Task<IActionResult> DeletePerson(int id)
         {
-            var person = await _repository.GetByIDAsync((int)id);
+            var person = await _repository.GetByIDAsync(id);
 
             if (person == null)
             {
-                return NotFound();
+                return NotFound($"Person with ID #{id} does not exist.");
             }
 
-            _repository.Delete((int)id);
+            _repository.Delete(id);
             await _repository.SaveChangesAsync();
 
             return NoContent();
