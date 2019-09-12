@@ -149,6 +149,7 @@ namespace PersonApi.Controllers
                 return await PostPerson(person);
             }
 
+            // below line is throwing 500 for some reason
             _repository.Update(person);
             await _repository.SaveChangesAsync();
 
