@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,13 +16,13 @@ namespace PersonApi.Controllers
     [ApiController]
     public class PersonController : ControllerBase
     {
-        // The database context for a Person object.
-        private readonly PersonRepository _repository;
+        // The repository for 
+        private readonly IRepository<Person, int> _repository;
 
-        // The constructor uses dependency injection to inject PersonRepository into the controller
+        // The constructor uses dependency injection to inject IRepository into the controller
         public PersonController(IRepository<Person, int> repository)
         {
-            _repository = (PersonRepository)repository;
+            _repository = repository;
         }
 
         // GET: api/Person
@@ -32,7 +34,7 @@ namespace PersonApi.Controllers
         [HttpGet]
         public IEnumerable<Person> GetPersons()
         {
-            return _repository.GetAllPersons();
+            return _repository.Get();
         }
 
         // GET: api/Person/ChocolateLovers
@@ -45,7 +47,7 @@ namespace PersonApi.Controllers
         [Route("ChocolateLovers")]
         public IEnumerable<Person> GetPersonsThatLikeChocolate()
         {
-            return _repository.GetAllPersons().Where(p => p.LikesChocolate == true);
+            return _repository.Get().Where(p => p.LikesChocolate == true);
         }
 
         // GET api/Person/5
@@ -62,11 +64,10 @@ namespace PersonApi.Controllers
 
             if (person == null)
             {
-                //return NotFound($"Person with ID #{id} does not exist.");
-                return NotFound();
+                return NotFound($"Person with ID #{id} does not exist.");
             }
 
-            return person;
+            return Ok(person);
         }
 
         // POST api/Person
@@ -91,6 +92,13 @@ namespace PersonApi.Controllers
         [HttpPost]
         public async Task<ActionResult<Person>> PostPerson(Person person)
         {
+            // Check that person's name has a valid character set (using regex name pattern from https://www.regextester.com/93648).
+            // We do not need to test ID or LikesChocolate as they are strongly typed in the person object.
+            if (!Regex.Match(person.Name, "^[a-zA-Z]+(([',. -][a-zA-Z ])?[a-zA-Z]*)*$").Success)
+            {
+                return BadRequest($"Name \'{person.Name}\' is not valid.");
+            }
+
             _repository.Insert(person);
             await _repository.SaveChangesAsync();
 
@@ -118,11 +126,27 @@ namespace PersonApi.Controllers
         /// <returns>No content.</returns>
         /// <response code="204">Successfully updated the person. No content is returned.</response>
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutPerson(long id, Person person)
+        public async Task<ActionResult<Person>> PutPerson(int id, Person person)
         {
+            // Check that person's name has a valid character set (using regex name pattern from https://www.regextester.com/93648).
+            // We do not need to test ID or LikesChocolate as they are strongly typed in the person object.
+            if (!Regex.Match(person.Name, "^[a-zA-Z]+(([',. -][a-zA-Z ])?[a-zA-Z]*)*$").Success)
+            {
+                return BadRequest($"Name \'{person.Name}\' is not valid.");
+            }
+
+            // If the id in the URL (.../Person/5) does not match the id of the Person object passed in, return a 400 status code (Bad Request).
             if (id != person.Id)
             {
-                return BadRequest();
+                return BadRequest($"Person ID provided in URL (ID #{id}) does not match Person ID provided in PUT header (ID #{person.Id}).");
+            }
+
+            // Finally, check that the id passed in is a valid id of someone in the database - PUT can only update a person if it exists.
+            if ((await _repository.GetByIDAsync(id)) == null)
+            {
+                // If it isn't a valid ID, the HTTP standard allows PUT to create a new resource in its place.
+                // Since POST was designed to create a new resource given a person object, we will simply route the request to the appropriate function.
+                return await PostPerson(person);
             }
 
             _repository.Update(person);
@@ -143,6 +167,7 @@ namespace PersonApi.Controllers
         {
             var person = await _repository.GetByIDAsync(id);
 
+            // If no person was found with the requested ID, return a 404 with a custom error message.
             if (person == null)
             {
                 return NotFound($"Person with ID #{id} does not exist.");
