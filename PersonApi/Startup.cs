@@ -16,6 +16,7 @@ using Microsoft.OpenApi.Models;
 using System.Reflection;
 using System.IO;
 using PersonApi.Repositories;
+using PersonApi.Configurations;
 
 namespace PersonApi
 {
@@ -66,6 +67,12 @@ namespace PersonApi
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                 c.IncludeXmlComments(xmlPath);
             });
+
+            // Add functionality to inject IOptions<T>
+            services.AddOptions();
+
+            // Add our Config object so it can be injected
+            services.Configure<ProjectConfigurations>(Configuration.GetSection("ProjectConfigurations"));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
