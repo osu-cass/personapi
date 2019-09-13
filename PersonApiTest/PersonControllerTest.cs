@@ -23,7 +23,8 @@ namespace PersonApiTest
             new Person(){ Id = 5, Name = "Harper Lee", LikesChocolate = true },
         };
 
-        // Set up mock repository that returns our fakePersons list upon its Get(...) function being called.
+        // Set up mock repository. Since our tests should be able to run without a live database instance,
+        // we can pass it a fake repository using MOQ to emulate the functions we need.
         public Mock<IRepository<Person, int>> fakePersonRepository = new Mock<IRepository<Person, int>>();
 
         /// <summary>
@@ -65,7 +66,7 @@ namespace PersonApiTest
         /// A valid request is defined by providing an ID that corresponds to an existing person.
         /// </remarks>
         [Fact]
-        public async void GetPersonValidTest()
+        public async void GetPersonTestValid()
         {
             // Set up fake repository and inject into controller.
             fakePersonRepository.Setup(x => x.GetByIDAsync(2)).ReturnsAsync(fakePersons.FirstOrDefault(p => p.Id == 2));
@@ -86,7 +87,7 @@ namespace PersonApiTest
         /// An invalid request is defined by providing an ID that does not correspond to an existing person.
         /// </remarks>
         [Fact]
-        public async void GetPersonInvalidTest()
+        public async void GetPersonTestInvalidId()
         {
             // Set up fake repository and inject into controller.
             fakePersonRepository.Setup(x => x.GetByIDAsync(2)).ReturnsAsync(fakePersons.FirstOrDefault(p => p.Id == 2));
@@ -126,8 +127,11 @@ namespace PersonApiTest
         /// <summary>
         /// Test that PersonController's PostPerson() function will fail when given an invalid Person.
         /// </summary>
+        /// <remarks>
+        /// Here, an invalid person is defined as not having  a valid Name character set
+        /// </remarks>
         [Fact]
-        public async void PostPersonTestInvalid()
+        public async void PostPersonTestInvalidName()
         {
             // Set up fake repository and inject into controller.
             PersonController personController = new PersonController(fakePersonRepository.Object);
@@ -149,21 +153,17 @@ namespace PersonApiTest
         public async void PutPersonTestValid()
         {
             // Set up fake repository and inject into controller.
-            List<Person> fakePersonsPut = new List<Person>()
-            {
-                new Person() { Id = 1, Name = "Dr.Suess", LikesChocolate = true }
-            };
-            fakePersonRepository.Setup(x => x.Get(null, null, "")).Returns(fakePersons);
+            // Here, we want the PUT method to identify that a person with ID #8 already exists, so that it may update it.
+            Person existingPerson = new Person { Id = 8, Name = "Shel Silverstein", LikesChocolate = true };
+            fakePersonRepository.Setup(x => x.GetByIDAsync(8)).ReturnsAsync(existingPerson);
             PersonController personController = new PersonController(fakePersonRepository.Object);
 
-            // POST a person to the controller.
-            ActionResult<Person> postPersonResult = await personController.PostPerson( new Person { Id = 8, Name = "Shel Silverstein", LikesChocolate = true });
+            // Now that we have "established" (in the repository's eyes) that Person #8 already exists, PUT Person #8 with changed fields.
+            ActionResult<Person> putPersonResult = await personController.PutPerson(8, new Person { Id = 8, Name = "Roald Dahl", LikesChocolate = false });
 
-            // Now, PUT the person with changed fields.
-            IActionResult putPersonResult = await personController.PutPerson(8, new Person { Id = 8, Name = "Roald Dahl", LikesChocolate = false });
-
-            // Upon success, PUT should return a non-null personResult and a 204 (No Content) status code, indicating that the request was successful but did not return content.
-            var createdResult = putPersonResult as NoContentResult;
+            // Upon success, PUT should return a non-null personResult and a 204 (No Content) status code, 
+            // indicating that the request was successful but did not return content (or create a new person).
+            var createdResult = putPersonResult.Result as NoContentResult;
             Assert.NotNull(putPersonResult);
             Assert.Equal(204, createdResult.StatusCode);
         }
@@ -176,21 +176,60 @@ namespace PersonApiTest
         /// updated entity, we can go ahead and create a new person as we would in a POST.
         /// </remarks>
         [Fact]
-        public async void PutPersonTestInvalid()
+        public async void PutPersonTestCreateNewPerson()
         {
             // Set up fake repository and inject into controller.
+            // Here, we want the PUT method to identify that a person with ID #8 does NOT already exist, so that it may create a new person.
+            fakePersonRepository.Setup(x => x.GetByIDAsync(8)).ReturnsAsync(() => null);
             PersonController personController = new PersonController(fakePersonRepository.Object);
 
-            // POST a person to the controller.
-            ActionResult<Person> postPersonResult = await personController.PostPerson(new Person { Id = 8, Name = "Shel Silverstein", LikesChocolate = true });
+            // Now that we have "established" (in the repository's eyes) that Person #8 doesn't exist, PUT Person #8.
+            ActionResult<Person> putPersonResult = await personController.PutPerson(8, new Person { Id = 8, Name = "Roald Dahl", LikesChocolate = false });
 
-            // Now, PUT the person with changed fields.
-            IActionResult putPersonResult = await personController.PutPerson(8, new Person { Id = 8, Name = "Roald Dahl", LikesChocolate = false });
-
-            // Upon success, PUT should return a non-null personResult and a 204 (No Content) status code, indicating that the request was successful but did not return content.
-            var createdResult = putPersonResult as NoContentResult;
+            // Upon success, PUT should return a non-null personResult and a 201 (Created) status code, indicating that the request successfully created a new person.
+            var createdResult = putPersonResult.Result as CreatedAtActionResult;
             Assert.NotNull(putPersonResult);
-            Assert.Equal(204, createdResult.StatusCode);
+            Assert.Equal(201, createdResult.StatusCode);
+        }
+
+        /// <summary>
+        /// Test that PersonController's PutPerson() function will serve a 400 (Bad Request) if the user provides two different IDs (one in the URL, one in the request body)
+        /// </summary>
+        [Fact]
+        public async void PutPersonTestMismatchedIds()
+        {
+            // Set up fake repository and inject into controller.
+            // Here, we want the PUT method to identify that a person with ID #8 already exists, so that it may update it.
+            Person existingPerson = new Person { Id = 8, Name = "Shel Silverstein", LikesChocolate = true };
+            fakePersonRepository.Setup(x => x.GetByIDAsync(8)).ReturnsAsync(existingPerson);
+            PersonController personController = new PersonController(fakePersonRepository.Object);
+
+            // PUT Person #8, but change the first parameter (corresponding to the URL's paramater from PUT /Person/7) to 7.
+            ActionResult<Person> putPersonResult = await personController.PutPerson(7, new Person { Id = 8, Name = "Roald Dahl", LikesChocolate = false });
+
+            // Upon request, PUT should return a non-null personResult, a 400 (Bad Request) status code, and a custom error message.
+            var createdResult = putPersonResult.Result as BadRequestObjectResult;
+            Assert.NotNull(putPersonResult);
+            Assert.Equal(400, createdResult.StatusCode);
+            Assert.Equal("Person ID provided in URL (ID #7) does not match Person ID provided in PUT body (ID #8).", createdResult.Value);
+        }
+
+        [Fact]
+        public async void PutPersonTestInvalidName()
+        {
+            // Set up fake repository and inject into controller.
+            // Here, we want the PUT method to identify that a person with ID #8 already exists, so that it may update it.
+            Person existingPerson = new Person { Id = 8, Name = "Inval1d N^ame", LikesChocolate = true };
+            PersonController personController = new PersonController(fakePersonRepository.Object);
+
+            // PUT Person #8, but change the first parameter (corresponding to the URL's paramater from PUT /Person/7) to 7.
+            ActionResult<Person> putPersonResult = await personController.PutPerson(8, existingPerson);
+
+            // Upon request, PUT should return a non-null personResult, a 400 (Bad Request) status code, and a custom error message.
+            var createdResult = putPersonResult.Result as BadRequestObjectResult;
+            Assert.NotNull(putPersonResult);
+            Assert.Equal(400, createdResult.StatusCode);
+            Assert.Equal("Name 'Inval1d N^ame' is not valid.", createdResult.Value);
         }
     }
 }

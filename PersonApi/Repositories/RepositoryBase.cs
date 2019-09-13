@@ -126,7 +126,16 @@ namespace PersonApi.Repositories
         /// <returns>The entity with the matching id if one exists; otherwise null.</returns>
         public virtual Task<TEntity> GetByIDAsync(TKey id)
         {
-            return _dbSet.FindAsync(id);
+            var result = _dbSet.FindAsync(id);
+
+            // If a valid object is returned, we want to stop tracking it (in other words, detach it).
+            // If we kept tracking it, then subsequent calls to the repository in the controller would fail.
+            if (result.Result != null)
+            {
+                _context.Entry(result.Result).State = EntityState.Detached;
+            }
+
+            return result;
         }
 
         /// <summary>

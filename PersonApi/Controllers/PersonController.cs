@@ -16,7 +16,6 @@ namespace PersonApi.Controllers
     [ApiController]
     public class PersonController : ControllerBase
     {
-        // The repository for 
         private readonly IRepository<Person, int> _repository;
 
         // The constructor uses dependency injection to inject IRepository into the controller
@@ -56,7 +55,8 @@ namespace PersonApi.Controllers
         /// </summary>
         /// <returns>A single person.</returns>
         /// <param name="id">The ID of the requested person.</param>
-        /// <returns>The person requested.</returns>
+        /// <response code="200">Successfully returned the person requested.</response>
+        /// <response code="404">The person with the provided ID does not exist.</response>
         [HttpGet("{id}")]
         public async Task<ActionResult<Person>> GetPerson(int id)
         {
@@ -124,7 +124,9 @@ namespace PersonApi.Controllers
         /// <param name="id"></param>
         /// <param name="person"></param>
         /// <returns>No content.</returns>
+        /// <response code="201">No person with the provided ID existed, so a new one was created.</response>
         /// <response code="204">Successfully updated the person. No content is returned.</response>
+        /// <response code="400">Bad Request. Either the provided name is invalid, or the ID provided in the URL does not match the one in the request body.</response>
         [HttpPut("{id}")]
         public async Task<ActionResult<Person>> PutPerson(int id, Person person)
         {
@@ -138,10 +140,10 @@ namespace PersonApi.Controllers
             // If the id in the URL (.../Person/5) does not match the id of the Person object passed in, return a 400 status code (Bad Request).
             if (id != person.Id)
             {
-                return BadRequest($"Person ID provided in URL (ID #{id}) does not match Person ID provided in PUT header (ID #{person.Id}).");
+                return BadRequest($"Person ID provided in URL (ID #{id}) does not match Person ID provided in PUT body (ID #{person.Id}).");
             }
 
-            // Finally, check that the id passed in is a valid id of someone in the database - PUT can only update a person if it exists.
+            // Finally, check that the id passed in is a valid id of someone in the database - PUT can only update a person if it exists.            
             if ((await _repository.GetByIDAsync(id)) == null)
             {
                 // If it isn't a valid ID, the HTTP standard allows PUT to create a new resource in its place.
@@ -149,7 +151,7 @@ namespace PersonApi.Controllers
                 return await PostPerson(person);
             }
 
-            // below line is throwing 500 for some reason
+            // If all of the above checks passed and we didn't create a new person, we can give the go-ahead to the database to update the person.
             _repository.Update(person);
             await _repository.SaveChangesAsync();
 
@@ -163,6 +165,7 @@ namespace PersonApi.Controllers
         /// <param name="id"></param>
         /// <returns>No content</returns>
         /// <response code="204">Successfully deleted the person. No content is returned.</response>
+        /// <response code="404">The person with the provided ID does not exist. No action was taken.</response>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePerson(int id)
         {
