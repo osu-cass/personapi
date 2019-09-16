@@ -10,11 +10,12 @@ using PersonApi.Configurations;
 using PersonApi.Models;
 using PersonApi.Repositories;
 
-namespace PersonApi.Controllers
+namespace PersonApi.Controllers.V1
 {
     [ApiConventionType(typeof(DefaultApiConventions))]
     [Produces("application/json")]
-    [Route("api/Person")]
+    [Route("api/v{version:apiVersion}/[controller]")]
+    [ApiVersion("1.0")]
     [ApiController]
     public class PersonController : ControllerBase
     {
@@ -28,12 +29,25 @@ namespace PersonApi.Controllers
             // When running test cases, this is a "fake" repository that only emulates the key functions needed.
             _repository = repository;
 
-            // Additionally, we inject IOptions<ProjectConfigurations> wchich gives the mapped 
-            // appsettings.json -> ProjectConfigurations object via the .Value property.
+            // Additionally, we inject IOptions<ProjectConfigurations> which maps properties from
+            // appsettings.json to the ProjectConfigurations object via the .Value property.
             _projectConfigurations = settings.Value;
         }
 
-        // GET: api/Person
+        // GET: api/v1/Person/Info
+        /// <summary>
+        /// Gets information about the API and its version.
+        /// </summary>
+        /// <returns>API version information.</returns>
+        /// <response code="200">Successfully returned information about the API.</response>
+        [HttpGet]
+        [Route("Info")]
+        public string GetInfo()
+        {
+            return "You are using PersonAPI Version 1!";
+        }
+
+        // GET: api/v1/Person
         /// <summary>
         /// Gets all persons.
         /// </summary>
@@ -45,7 +59,7 @@ namespace PersonApi.Controllers
             return _repository.Get();
         }
 
-        // GET: api/Person/ChocolateLovers
+        // GET: api/v1/Person/ChocolateLovers
         /// <summary>
         /// Gets all persons that like chocolate.
         /// </summary>
@@ -58,7 +72,7 @@ namespace PersonApi.Controllers
             return _repository.Get().Where(p => p.LikesChocolate == true);
         }
 
-        // GET api/Person/5
+        // GET api/v1/Person/5
         /// <summary>
         /// Gets a single specific person by their ID.
         /// </summary>
@@ -79,7 +93,7 @@ namespace PersonApi.Controllers
             return Ok(person);
         }
 
-        // POST api/Person
+        // POST api/v1/Person
         /// <summary>
         /// Creates a person.
         /// </summary>
@@ -114,7 +128,7 @@ namespace PersonApi.Controllers
             return CreatedAtAction(nameof(GetPerson), new { id = person.Id }, person);
         }
 
-        // PUT api/Person/5
+        // PUT api/v1/Person/5
         /// <summary>
         /// Updates a person by their ID.
         /// </summary>
@@ -167,7 +181,7 @@ namespace PersonApi.Controllers
             return NoContent();
         }
 
-        // DELETE api/Person/5
+        // DELETE api/v1/Person/5
         /// <summary>
         /// Deletes a person by their ID.
         /// </summary>
