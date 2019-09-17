@@ -27,9 +27,10 @@ namespace PersonApi
         {
             Configuration = configuration;
 
-            // Initialize the logger. Logs can be found at C:\Logs\...
+            // Initialize the logger. While the program is running, it creates a new log file every hour and continuously logs to it.
+            // Logs can be found inside the project under the Logs folder. Only the 31 most recent log files are retained.
             Log.Logger = new LoggerConfiguration()            
-            .WriteTo.File(@"\Logs\log-.txt", rollingInterval: RollingInterval.Minute)
+            .WriteTo.File(Path.Combine(@"Logs\log-.txt"), rollingInterval: RollingInterval.Hour, rollOnFileSizeLimit: true)
             .CreateLogger();
         }
 
