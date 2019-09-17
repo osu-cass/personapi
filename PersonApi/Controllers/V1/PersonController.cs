@@ -12,6 +12,9 @@ using PersonApi.Repositories;
 
 namespace PersonApi.Controllers.V1
 {
+    /// <summary>
+    /// Version 1 of the PersonController.
+    /// </summary>
     [ApiConventionType(typeof(DefaultApiConventions))]
     [Produces("application/json")]
     [Route("api/v{version:apiVersion}/[controller]")]

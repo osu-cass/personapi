@@ -9,9 +9,18 @@ using Microsoft.Extensions.Options;
 using PersonApi.Configurations;
 using PersonApi.Models;
 using PersonApi.Repositories;
+using Serilog;
+using Serilog.Core;
 
 namespace PersonApi.Controllers.V2
 {
+    /// <summary>
+    /// Version 2 of the PersonController.
+    /// </summary>
+    /// <remarks>
+    /// Currently, the only difference in implementation between the two versions is that V2 has a modified GetInfo()
+    /// function to demonstrate that [GET api/v2/Person/Info] calls a different function than [GET api/v1/Person/Info]
+    /// </remarks>
     [ApiConventionType(typeof(DefaultApiConventions))]
     [Produces("application/json")]
     [Route("api/v{version:apiVersion}/[controller]")]

@@ -14,6 +14,13 @@ using PersonApi.Configurations;
 
 namespace PersonApiTest
 {
+    /// <summary>
+    /// A collection of test cases for PersonAPI.
+    /// </summary>
+    /// <remarks>
+    /// Since PersonAPI V1 and V2 have identical implementations apart from
+    /// the GetInfo() function, these tests only cover the V1 suite of functions.
+    /// </remarks>
     public class PersonControllerTest
     {
         // Our fake "database" to to test our controller against.

@@ -17,6 +17,7 @@ using System.Reflection;
 using System.IO;
 using PersonApi.Repositories;
 using PersonApi.Configurations;
+using Serilog;
 
 namespace PersonApi
 {
@@ -25,6 +26,11 @@ namespace PersonApi
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
+
+            // Initialize the logger.
+            Log.Logger = new LoggerConfiguration()            
+            .WriteTo.File(Path.Combine("log-.txt"), rollingInterval: RollingInterval.Day)
+            .CreateLogger();
         }
 
         public IConfiguration Configuration { get; }
@@ -89,9 +95,12 @@ namespace PersonApi
             // Else, enable the Exception Handling Middleware.
             else
             {
-                app.UseExceptionHandler("/Error");
+                app.UseExceptionHandler("/Home/Error");
                 app.UseHsts();
             }
+
+            // Enable middleware to use Serilog (logging service)
+            app.UseSerilogRequestLogging();
 
             // Enable middleware to serve generated Swagger as a JSON endpoint.
             app.UseSwagger();
