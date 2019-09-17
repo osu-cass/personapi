@@ -27,9 +27,9 @@ namespace PersonApi
         {
             Configuration = configuration;
 
-            // Initialize the logger.
+            // Initialize the logger. Logs can be found at C:\Logs\...
             Log.Logger = new LoggerConfiguration()            
-            .WriteTo.File(Path.Combine("log-.txt"), rollingInterval: RollingInterval.Day)
+            .WriteTo.File(@"\Logs\log-.txt", rollingInterval: RollingInterval.Minute)
             .CreateLogger();
         }
 

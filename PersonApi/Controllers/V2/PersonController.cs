@@ -89,7 +89,7 @@ namespace PersonApi.Controllers.V2
         /// <param name="id">The ID of the requested person.</param>
         /// <response code="200">Successfully returned the person requested.</response>
         /// <response code="404">The person with the provided ID does not exist.</response>
-        [HttpGet("{id}")]
+        [HttpGet("{id}", Name = nameof(GetPerson))]
         public async Task<ActionResult<Person>> GetPerson(int id)
         {
             var person = await _repository.GetByIDAsync(id);
@@ -134,7 +134,7 @@ namespace PersonApi.Controllers.V2
             _repository.Insert(person);
             await _repository.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetPerson), new { id = person.Id }, person);
+            return CreatedAtRoute(nameof(GetPerson), new { id = person.Id }, person);
         }
 
         // PUT api/v2/Person/5
