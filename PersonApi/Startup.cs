@@ -12,12 +12,13 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using PersonApi.Models;
-using Microsoft.OpenApi.Models;
 using System.Reflection;
 using System.IO;
 using PersonApi.Repositories;
 using PersonApi.Configurations;
 using Serilog;
+using Swashbuckle.AspNetCore.Swagger;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 
 namespace PersonApi
 {
@@ -45,36 +46,44 @@ namespace PersonApi
 
             services.AddScoped<IRepository<Person, int>, PersonRepository>();
 
-            services.AddApiVersioning();
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
-            // Register the Swagger generator, defining 1 or more Swagger documents
-            services.AddSwaggerGen(c =>
-            {
-                c.SwaggerDoc("v1", new OpenApiInfo
+            services.AddVersionedApiExplorer(
+                options =>
                 {
-                    Version = "v1",
-                    Title = "Person API",
-                    Description = "A simple example ASP.NET Core Web API",
-                    TermsOfService = new Uri("https://example.com/terms"),
-                    Contact = new OpenApiContact
+                        //The format of the version added to the route URL  
+                        options.GroupNameFormat = "'v'VVV";
+                        //Tells swagger to replace the version in the controller route  
+                        options.SubstituteApiVersionInUrl = true;
+                }); ;
+
+            services.AddApiVersioning(options => options.ReportApiVersions = true);
+
+            // Register the Swagger generator, defining 1 or more Swagger documents
+            services.AddSwaggerGen(options =>
+            {
+                // Resolve the temprary IApiVersionDescriptionProvider service  
+                var provider = services.BuildServiceProvider().GetRequiredService<IApiVersionDescriptionProvider>();
+
+                // Add a swagger document for each discovered API version  
+                foreach (var description in provider.ApiVersionDescriptions)
+                {
+                    options.SwaggerDoc(description.GroupName, new Info()
                     {
-                        Name = "Ernest Hemingway",
-                        Email = string.Empty,
-                        Url = new Uri("https://en.wikipedia.org/wiki/Ernest_Hemingway"),
-                    },
-                    License = new OpenApiLicense
-                    {
-                        Name = "Use under LICX",
-                        Url = new Uri("https://example.com/license"),
-                    }
-                });
+                        Title = $"{this.GetType().Assembly.GetCustomAttribute<System.Reflection.AssemblyProductAttribute>().Product} {description.ApiVersion}",
+                        Version = description.ApiVersion.ToString(),
+                        Description = "Simple ASP.NET Core WebAPI example",
+                    });
+                }
+
+                // Add a custom filter for setting the default values
+                options.OperationFilter<SwaggerDefaultValues>();
 
                 // Set the comments path for the Swagger JSON and UI.
                 var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-                c.IncludeXmlComments(xmlPath);
+                options.IncludeXmlComments(xmlPath);
             });
 
             // Add functionality to inject IOptions<T>
@@ -85,7 +94,7 @@ namespace PersonApi
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApiVersionDescriptionProvider provider)
         {
             // If the app is in a development environment, use a page that displays very detailed information about exceptions.
             // In a production environment, we don't want to expose this level of detail to the client.
@@ -106,19 +115,20 @@ namespace PersonApi
             // Enable middleware to serve generated Swagger as a JSON endpoint.
             app.UseSwagger();
 
-            // Enable middleware to serve swagger-ui (HTML, JS, CSS, etc.),
-            // specifying the Swagger JSON endpoint.
+            // Enable middleware to serve swagger-ui (HTML, JS, CSS, etc.), specifying the Swagger JSON endpoint.
             app.UseSwaggerUI(c =>
             {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+                //Build a swagger endpoint for each discovered API version  
+                foreach (var description in provider.ApiVersionDescriptions)
+                {
+                    c.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
+                }
             });
 
             // Enforce redirecting from HTTP to HTTPS
             app.UseHttpsRedirection();
 
             // Set up routing
-            //app.UseMvc();
-
             app.UseMvc(routes =>
             {
                 routes.MapRoute("default", "{controller=Home}/{action=Index}/{id?}");
