@@ -55,22 +55,72 @@ namespace PersonApi.Controllers.V1
         /// <returns>A list of all persons.</returns>
         /// <response code="200">Successfully returned a list of all persons.</response>
         [HttpGet]
-        public IEnumerable<Person> GetPersons()
+        public async Task<IEnumerable<Person>> GetPersons()
         {
-            return _repository.Get();
+            return await _repository.GetAsync();
         }
 
-        // GET: api/v1/Person/ChocolateLovers
+        // GET: api/v1/Person/Filter
         /// <summary>
-        /// Gets all persons that like chocolate.
+        /// Gets all persons that match the filter, which is passed in through the query string.
         /// </summary>
-        /// <returns>A list of all persons that like chocolate.</returns>
-        /// <response code="200">Successfully returned a list of all persons that like chocolate.</response>
+        /// <remarks>
+        /// Query string parameters are mapped to the Filter class. For example,
+        /// 
+        ///     GET /api/v1/Person/Filter?LikesChocolate=true&MaxNumberOfResults=3
+        ///     
+        /// will produce an instance of the Filter class in which the bool LikesChocolate is set to true,
+        /// and int NumberOfResults is set to 3. The other variable is set to null, indicating we should
+        /// ignore that filter trait. This class is passed into our function, and we can use its members
+        /// to narrow down search results.
+        /// 
+        /// Another sample query:
+        /// 
+        ///     GET /api/v1/Person/Filter?Name="Charles+Dickens"
+        ///
+        /// </remarks>
+        /// <returns>A list of all persons that match the filter.</returns>
+        /// <response code="200">Successfully returned a list of all persons that match the filter.</response>
+        /// <response code="400">No filter was provided.</response>
+        /// <response code="404">There were no people that matched the provided filter.</response>
         [HttpGet]
-        [Route("ChocolateLovers")]
-        public IEnumerable<Person> GetPersonsThatLikeChocolate()
+        [Route("Filter")]
+        public async Task<ActionResult<IEnumerable<Person>>> GetPersonsByFilter([FromQuery] Filter filter)
         {
-            return _repository.Get().Where(p => p.LikesChocolate == true);
+            // Before we do anything, validate that at least one of the filter properties is non-null (so we have something to filter by).
+            if (filter.GetType().GetProperties().All(p => p.GetValue(filter) == null))
+            {
+                return BadRequest("No filters were provided.");
+            }
+
+            // Now we know we have something to filter by, fetch all persons.
+            IEnumerable<Person> persons = await _repository.GetAsync();
+
+            // Apply the filters that are non-null.
+            if (!string.IsNullOrWhiteSpace(filter.Name))
+            {
+                persons = persons.Where(p => p.Name == filter.Name);
+            }
+            if (filter.LikesChocolate != null)
+            {
+                persons = persons.Where(p => p.LikesChocolate == filter.LikesChocolate);
+            }
+
+            // This is the last filter we should apply, as the total number of results should always 
+            // be as close to MaxNumberOfResults as possible, while still staying under.
+            if (filter.MaxNumberOfResults != null)
+            {
+                persons = persons.Take((int)filter.MaxNumberOfResults);
+            }
+
+            // Finally, if all of our filtering has left us without any results, return a 404 (Not Found).
+            if (persons.Count() == 0)
+            {
+                return NotFound("There were no results that matched your filters.");
+            }
+
+            // At this point, we know we have at least one result due to a valid filter, so return the results.
+            return Ok(persons);
         }
 
         // GET api/v1/Person/5
@@ -187,7 +237,7 @@ namespace PersonApi.Controllers.V1
         /// Deletes a person by their ID.
         /// </summary>
         /// <param name="id"></param>
-        /// <returns>No content</returns>
+        /// <returns>No content</returns> 
         /// <response code="204">Successfully deleted the person. No content is returned.</response>
         /// <response code="404">The person with the provided ID does not exist. No action was taken.</response>
         [HttpDelete("{id}")]
