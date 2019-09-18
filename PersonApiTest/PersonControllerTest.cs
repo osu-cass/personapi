@@ -1,13 +1,10 @@
-using System;
 using Xunit;
 using Moq;
 using PersonApi.Repositories;
 using PersonApi.Models;
 using System.Collections.Generic;
-using PersonApi.Controllers;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using OkResult = Microsoft.AspNetCore.Mvc.OkResult;
 using PersonApi.Controllers.V1;
 using Microsoft.Extensions.Options;
 using PersonApi.Configurations;
@@ -132,7 +129,7 @@ namespace PersonApiTest
             ActionResult<Person> personResult = await personController.PostPerson(new Person { Id = 6, Name = "Mark Twain", LikesChocolate = false });
 
             // Confirm we receive a 201 (Created) status code and the ID's of the created person and supplied person match.
-            var createdResult = personResult.Result as CreatedAtActionResult;
+            var createdResult = personResult.Result as CreatedAtRouteResult;
             Assert.Equal(201, createdResult.StatusCode);
             Assert.Equal(6, createdResult.RouteValues["id"]);
         }
@@ -200,7 +197,7 @@ namespace PersonApiTest
             ActionResult<Person> putPersonResult = await personController.PutPerson(8, new Person { Id = 8, Name = "Roald Dahl", LikesChocolate = false });
 
             // Upon success, PUT should return a non-null personResult and a 201 (Created) status code, indicating that the request successfully created a new person.
-            var createdResult = putPersonResult.Result as CreatedAtActionResult;
+            var createdResult = putPersonResult.Result as CreatedAtRouteResult;
             Assert.NotNull(putPersonResult);
             Assert.Equal(201, createdResult.StatusCode);
         }
