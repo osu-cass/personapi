@@ -59,9 +59,9 @@ namespace PersonApi.Controllers.V2
         /// <returns>A list of all persons.</returns>
         /// <response code="200">Successfully returned a list of all persons.</response>
         [HttpGet]
-        public IEnumerable<Person> GetPersons()
+        public async Task<IEnumerable<Person>> GetPersons()
         {
-            return _repository.Get();
+            return await _repository.GetAsync();
         }
 
         // GET: api/v2/Person/Filter
@@ -71,7 +71,7 @@ namespace PersonApi.Controllers.V2
         /// <remarks>
         /// Query string parameters are mapped to the Filter class. For example,
         /// 
-        ///     GET /api/v1/Person/Filter?LikesChocolate=true&MaxNumberOfResults=3
+        ///     GET /api/v1/Person/Filter?LikesChocolate=true[AMPERSAND]MaxNumberOfResults=3
         ///     
         /// will produce an instance of the Filter class in which the bool LikesChocolate is set to true,
         /// and int NumberOfResults is set to 3. The other variable is set to null, indicating we should
@@ -118,6 +118,7 @@ namespace PersonApi.Controllers.V2
             }
 
             // Finally, if all of our filtering has left us without any results, return a 404 (Not Found).
+            // This also catches the user passing negative integers to MaxNumberOfResults, as it will return no results.
             if (persons.Count() == 0)
             {
                 return NotFound("There were no results that matched your filters.");
