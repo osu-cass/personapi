@@ -15,4 +15,5 @@ The `master` branch contains the "workbook" version of the API, with unfinished 
 The `solutions` branch supplements the solutions to unfinished tasks, and is a fully functional example API.
 
 ## Workbook Unfinished Task List
--Implement GetPersonsByFilter() so that it passes its three unit tests.
+ - Implement GetPersonsByFilter() in V1.PersonController so that it passes its three unit tests: GetPersonByFilterTestNoResults(),
+GetPersonByFilterTestValid(), and GetPersonByFilterTestNoFilter().
