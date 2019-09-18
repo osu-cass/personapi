@@ -41,32 +41,90 @@ namespace PersonApiTest
         /// Test for PersonController's GetPersons() function.
         /// </summary>
         [Fact]
-        public void GetPersonsTest()
+        public async void GetPersonsTest()
         {
             // For this test, we want to be able to emulate the GetPersons() function of the PersonControllerTest.
             // In order for the GetPersons() function to work, we must define the behavior of any repository functions it calls.
-            fakePersonRepository.Setup(x => x.Get(null, null, "")).Returns(fakePersons);
+            fakePersonRepository.Setup(x => x.GetAsync(null, null, "")).ReturnsAsync(fakePersons);
 
             // By passing the mock repository's object into our controller, we have
             // successfully used dependency injection to mock a working repository.
             PersonController personController = new PersonController(fakePersonRepository.Object, fakeProjectConfigurations.Object);
 
             // Confirm that the controller successfully returns all persons.
-            Assert.Equal(fakePersons, personController.GetPersons().ToList());
+            Assert.Equal(fakePersons, personController.GetPersons().Result.ToList());
         }
 
         /// <summary>
-        /// Test for PersonController's GetPersonsThatLikeChocolate() function
+        /// Test that PersonController's GetPersonsByFilter() function will return correctly filtered results when given a valid query.
         /// </summary>
+        /// <remarks>
+        /// A valid query is one in which at least one filter is provided. At least one result is returned in each case.
+        /// </remarks>
         [Fact]
-        public void GetPersonsThatLikeChocolateTest()
+        public async void GetPersonsByFilterTestValid()
         {
             // Set up fake repository and inject into controller.
-            fakePersonRepository.Setup(x => x.Get(null, null, "")).Returns(fakePersons);
+            fakePersonRepository.Setup(x => x.GetAsync(null, null, "")).ReturnsAsync(fakePersons);
             PersonController personController = new PersonController(fakePersonRepository.Object, fakeProjectConfigurations.Object);
 
-            // Confirm that the controller successfully returns all persons that like chocolate.
-            Assert.Equal(fakePersons.Where(d => d.LikesChocolate == true), personController.GetPersonsThatLikeChocolate().ToList());
+            // Set up our two filter objects, to ensure we have covered all filter properties.
+            Filter firstFilter = new Filter { LikesChocolate = true, MaxNumberOfResults = 2 };
+            Filter secondFilter = new Filter { Name = "George Orwell" };
+
+            // Confirm that the controller successfully returns two first two persons that like chocolate.
+            ActionResult<IEnumerable<Person>> personResult = await personController.GetPersonsByFilter(firstFilter);
+            var successResult = personResult.Result as ObjectResult;
+            Assert.NotNull(personResult);
+            Assert.Equal(200, successResult.StatusCode);
+            Assert.Equal(fakePersons.Take(2), successResult.Value);
+
+            // Confirm that when we search for George Orwell, he is the person that is returned.
+            personResult = await personController.GetPersonsByFilter(secondFilter);
+            successResult = personResult.Result as ObjectResult;
+            Assert.NotNull(personResult);
+            Assert.Equal(200, successResult.StatusCode);
+            Assert.Equal(fakePersons.Where(p => p.Name == "George Orwell"), successResult.Value);
+        }
+
+        /// <summary>
+        /// Test that PersonController's GetPersonsByFilter() function returns a 400 (Bad Request) when given no filters.
+        /// </summary>
+        [Fact]
+        public async void GetPersonByFilterTestNoFilter()
+        {
+            // Set up fake repository and inject into controller.
+            fakePersonRepository.Setup(x => x.GetAsync(null, null, "")).ReturnsAsync(fakePersons);
+            PersonController personController = new PersonController(fakePersonRepository.Object, fakeProjectConfigurations.Object);
+
+            // Set up our empty filter object.
+            Filter filter = new Filter();
+
+            // Confirm that the controller successfully returns a 400 (Bad Request) when given no filters.
+            ActionResult<IEnumerable<Person>> personResult = await personController.GetPersonsByFilter(filter);
+            var successResult = personResult.Result as BadRequestObjectResult;
+            Assert.NotNull(personResult);
+            Assert.Equal(400, successResult.StatusCode);
+        }
+
+        /// <summary>
+        /// Test that PersonController's GetPersonsByFilter() function returns a 404 (Not Found) if the filters narrow down the results to 0.
+        /// </summary>
+        [Fact]
+        public async void GetPersonByFilterTestNoResults()
+        {
+            // Set up fake repository and inject into controller.
+            fakePersonRepository.Setup(x => x.GetAsync(null, null, "")).ReturnsAsync(fakePersons);
+            PersonController personController = new PersonController(fakePersonRepository.Object, fakeProjectConfigurations.Object);
+
+            // Set up our overly-specific filter object (that won't return any results).
+            Filter filter = new Filter { Name = "J.K. Rowling", LikesChocolate = true, MaxNumberOfResults = 1 };
+
+            // Confirm that the controller successfully returns a 404 (Not Found) if the filters narrow down the results to 0.
+            ActionResult<IEnumerable<Person>> personResult = await personController.GetPersonsByFilter(filter);
+            var successResult = personResult.Result as NotFoundObjectResult;
+            Assert.NotNull(personResult);
+            Assert.Equal(404, successResult.StatusCode);
         }
 
         /// <summary>
