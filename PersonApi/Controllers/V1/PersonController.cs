@@ -81,7 +81,7 @@ namespace PersonApi.Controllers.V1
         /// 
         /// Another sample query:
         /// 
-        ///     GET /api/v1/Person/Filter?Name="Charles+Dickens"
+        ///     GET /api/v1/Person/Filter?Name=Charles+Dickens
         ///
         /// will produce an instance of the Filter class in which Name is set to "Charles Dickens", and the other
         /// two variables are null. In this case, we should return all people with the name Charles Dickens.
