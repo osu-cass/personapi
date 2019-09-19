@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -89,45 +90,26 @@ namespace PersonApi.Controllers.V1
         /// <response code="200">Successfully returned a list of all persons that match the filter.</response>
         /// <response code="400">No filter was provided.</response>
         /// <response code="404">There were no people that matched the provided filter.</response>
-        [HttpGet]
-        [Route("Filter")]
+
+        // TODO: Data attributes will go here. You will need one to indicate this is a GET method, and one
+        // that specifies that calls to api/v1/Person/Filter should be routed to this method. Look to
+        // GetInfo() if you need an example.
         public async Task<ActionResult<IEnumerable<Person>>> GetPersonsByFilter([FromQuery] Filter filter)
         {
-            // Before we do anything, validate that at least one of the filter properties is non-null (so we have something to filter by).
-            if (filter.GetType().GetProperties().All(p => p.GetValue(filter) == null))
-            {
-                return BadRequest("No filters were provided.");
-            }
+            // TODO: Implement this method. The method signature has been provided, and all information about the
+            // functionality of this method is provided in the above XML comments, and in the Filter.cs class.
 
-            // Now we know we have something to filter by, fetch all persons.
-            IEnumerable<Person> persons = await _repository.GetAsync();
+            // The unit tests that correspond to this method are located in PersonApiTest.PersonControllerTest and are:
+            // - GetPersonByFilterTestValid()
+            // - GetPersonByFilterTestNoFilter()
+            // - GetPersonByFilterTestNoResults()
 
-            // Apply the filters that are non-null.
-            if (!string.IsNullOrWhiteSpace(filter.Name))
-            {
-                persons = persons.Where(p => p.Name == filter.Name);
-            }
-            if (filter.LikesChocolate != null)
-            {
-                persons = persons.Where(p => p.LikesChocolate == filter.LikesChocolate);
-            }
-
-            // This is the last filter we should apply, as the total number of results should always 
-            // be as close to MaxNumberOfResults as possible, while still staying under.
-            if (filter.MaxNumberOfResults != null)
-            {
-                persons = persons.Take((int)filter.MaxNumberOfResults);
-            }
-
-            // Finally, if all of our filtering has left us without any results, return a 404 (Not Found).
-            // This also catches the user passing negative integers to MaxNumberOfResults, as it will return no results.
-            if (persons.Count() == 0)
-            {
-                return NotFound("There were no results that matched your filters.");
-            }
-
-            // At this point, we know we have at least one result due to a valid filter, so return the results.
-            return Ok(persons);
+            // A note about the return type: While Task<ActionResult<IEnumerable<Person>>> may look formidable,
+            // this function accepts the following return statements:
+            //      return BadRequest("Custom error text goes here"); will return a 400 Status Code
+            //      return NotFound("Custom error text goes here"); will return a 404 Status Code
+            //      return Ok(object of type IEnumerable<Person> containing the filter results goes here); will return a 200 Status Code.
+            throw new NotImplementedException();
         }
 
         // GET api/v1/Person/5
