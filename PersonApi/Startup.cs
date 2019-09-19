@@ -67,7 +67,9 @@ namespace PersonApi
                     {
                         Title = $"{this.GetType().Assembly.GetCustomAttribute<System.Reflection.AssemblyProductAttribute>().Product} {description.ApiVersion}",
                         Version = description.ApiVersion.ToString(),
-                        Description = "Simple ASP.NET Core WebAPI example",
+                        Description = "Simple ASP.NET Core WebAPI example. This API demonstrates basic HTTP concepts by applying them to a group " +
+                        "of \"Person\" objects, which have traits such as a Name, an ID, and whether or not the Person likes chocolate. Using the API, " +
+                        "one can POST (create) a new person, PUT (update) a person, GET (read) persons, and DELETE persons.",
                     });
                 }
 

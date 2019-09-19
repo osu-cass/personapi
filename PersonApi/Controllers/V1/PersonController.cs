@@ -11,7 +11,7 @@ using PersonApi.Repositories;
 namespace PersonApi.Controllers.V1
 {
     /// <summary>
-    /// Version 1 of the PersonController.
+    /// Version 1 of the PersonController. Contains implementations of PUT, POST, DELETE, and various GETs.
     /// </summary>
     [ApiConventionType(typeof(DefaultApiConventions))]
     [Produces("application/json")]
@@ -30,8 +30,8 @@ namespace PersonApi.Controllers.V1
             // When running test cases, this is a "fake" repository that only emulates the key functions needed.
             _repository = repository;
 
-            // Additionally, we inject IOptions<ProjectConfigurations> which maps properties from
-            // appsettings.json to the ProjectConfigurations object via the .Value property.
+            // Additionally, we inject IOptions<ProjectConfigurations> which uses (object relational) mapping to
+            // take property values from appsettings.json and store them in the ProjectConfigurations object.
             _projectConfigurations = settings.Value;
         }
 
@@ -57,6 +57,9 @@ namespace PersonApi.Controllers.V1
         [HttpGet]
         public async Task<IEnumerable<Person>> GetPersons()
         {
+            // For those familiar with async programming, "await"ing this call may seem silly because we are essentially 
+            // executing the code synchronously, however the benefit is that if someone calls the API endpoint multiple
+            // times in a row very quickly, ASP.NET Core can optimize threads in the background.
             return await _repository.GetAsync();
         }
 
@@ -65,19 +68,22 @@ namespace PersonApi.Controllers.V1
         /// Gets all persons that match the filter, which is passed in through the query string.
         /// </summary>
         /// <remarks>
-        /// Query string parameters are mapped to the Filter class. For example,
+        /// Query string parameters are automatically mapped to the Filter class. For example,
         /// 
         ///     GET /api/v1/Person/Filter?LikesChocolate=true[AMPERSAND]MaxNumberOfResults=3
         ///     
         /// will produce an instance of the Filter class in which the bool LikesChocolate is set to true,
-        /// and int NumberOfResults is set to 3. The other variable is set to null, indicating we should
-        /// ignore that filter trait. This class is passed into our function, and we can use its members
-        /// to narrow down search results.
+        /// and int NumberOfResults is set to 3. Since we left out the third possible variable, it is automatically 
+        /// set to null, indicating we should ignore that filter trait. This object is passed into GetPersonsByFilter(...),
+        /// and we can use its members to narrow down search results. In this case, we should return the first 3
+        /// people who like chocolate.
         /// 
         /// Another sample query:
         /// 
         ///     GET /api/v1/Person/Filter?Name="Charles+Dickens"
         ///
+        /// will produce an instance of the Filter class in which Name is set to "Charles Dickens", and the other
+        /// two variables are null. In this case, we should return all people with the name Charles Dickens.
         /// </remarks>
         /// <returns>A list of all persons that match the filter.</returns>
         /// <response code="200">Successfully returned a list of all persons that match the filter.</response>
@@ -201,7 +207,8 @@ namespace PersonApi.Controllers.V1
         /// <returns>No content.</returns>
         /// <response code="201">No person with the provided ID existed, so a new one was created.</response>
         /// <response code="204">Successfully updated the person. No content is returned.</response>
-        /// <response code="400">Bad Request. Either the provided name is invalid, or the ID provided in the URL does not match the one in the request body.</response>
+        /// <response code="400">Bad Request. Either the provided name is invalid, or 
+        /// the ID provided in the URL does not match the one in the request body.</response>
         [HttpPut("{id}")]
         public async Task<ActionResult<Person>> PutPerson(int id, Person person)
         {
@@ -222,7 +229,7 @@ namespace PersonApi.Controllers.V1
             if ((await _repository.GetByIDAsync(id)) == null)
             {
                 // If it isn't a valid ID, the HTTP standard allows PUT to create a new resource in its place.
-                // Since POST was designed to create a new resource given a person object, we will simply route the request to the appropriate function.
+                // Since POST creates a new resource given a person object, we will simply route the request to the appropriate function.
                 return await PostPerson(person);
             }
 
