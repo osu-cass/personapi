@@ -91,12 +91,12 @@ namespace PersonApi.Controllers.V1
         /// <response code="400">No filter was provided.</response>
         /// <response code="404">There were no people that matched the provided filter.</response>
 
-        // TODO: Data attributes will go here. You will need one to indicate this is a GET method, and one
+        // TODO (DEQ): Data attributes will go here. You will need one to indicate this is a GET method, and one
         // that specifies that calls to api/v1/Person/Filter should be routed to this method. Look to
         // GetInfo() if you need an example.
         public async Task<ActionResult<IEnumerable<Person>>> GetPersonsByFilter([FromQuery] Filter filter)
         {
-            // TODO: Implement this method. The method signature has been provided, and all information about the
+            // TODO (DEQ): Implement this method. The method signature has been provided, and all information about the
             // functionality of this method is provided in the above XML comments, and in the Filter.cs class.
 
             // The unit tests that correspond to this method are located in PersonApiTest.PersonControllerTest and are:
