@@ -90,26 +90,27 @@ namespace PersonApi.Controllers.V1
         /// <response code="200">Successfully returned a list of all persons that match the filter.</response>
         /// <response code="400">No filter was provided.</response>
         /// <response code="404">There were no people that matched the provided filter.</response>
-
-        // TODO (DEQ): Data attributes will go here. You will need one to indicate this is a GET method, and one
-        // that specifies that calls to api/v1/Person/Filter should be routed to this method. Look to
-        // GetInfo() if you need an example.
+        [HttpGet]
+        [Route("Filter")]
         public async Task<ActionResult<IEnumerable<Person>>> GetPersonsByFilter([FromQuery] Filter filter)
         {
-            // TODO (DEQ): Implement this method. The method signature has been provided, and all information about the
-            // functionality of this method is provided in the above XML comments, and in the Filter.cs class.
+            if (filter == null || (!filter.LikesChocolate.HasValue
+                && !filter.MaxNumberOfResults.HasValue
+                && string.IsNullOrWhiteSpace(filter.Name)))
+            {
+                return BadRequest("No filter parameters were supplied, you must specify some filter parameters.");
+            }
 
-            // The unit tests that correspond to this method are located in PersonApiTest.PersonControllerTest and are:
-            // - GetPersonByFilterTestValid()
-            // - GetPersonByFilterTestNoFilter()
-            // - GetPersonByFilterTestNoResults()
-
-            // A note about the return type: While Task<ActionResult<IEnumerable<Person>>> may look formidable,
-            // this function accepts the following return statements:
-            //      return BadRequest("Custom error text goes here"); will return a 400 Status Code
-            //      return NotFound("Custom error text goes here"); will return a 404 Status Code
-            //      return Ok(object of type IEnumerable<Person> containing the filter results goes here); will return a 200 Status Code.
-            throw new NotImplementedException();
+            IEnumerable<Person> fullList = await _repository.GetAsync();
+            var filteredList = fullList.Where(p =>
+                    (string.IsNullOrWhiteSpace(filter.Name) || p.Name == filter.Name)
+                    && (!filter.LikesChocolate.HasValue || p.LikesChocolate == filter.LikesChocolate))
+                .Take(filter.MaxNumberOfResults ?? fullList.Count());
+            if (!filteredList.Any())
+            {
+                return NotFound("No results found, try expanding your search criteria.");
+            }
+            return Ok(filteredList);
         }
 
         // GET api/v1/Person/5
