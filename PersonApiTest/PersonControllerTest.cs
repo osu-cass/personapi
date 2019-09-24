@@ -52,7 +52,7 @@ namespace PersonApiTest
             PersonController personController = new PersonController(fakePersonRepository.Object, fakeProjectConfigurations.Object);
 
             // Confirm that the controller successfully returns all persons.
-            Assert.Equal(fakePersons, personController.GetPersons().Result.ToList());
+            Assert.Equal(fakePersons, await personController.GetPersons());
         }
 
         /// <summary>

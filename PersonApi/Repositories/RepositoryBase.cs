@@ -13,6 +13,7 @@ namespace PersonApi.Repositories
     /// Base repository implementation for working with entities.
     /// </summary>
     /// <typeparam name="TEntity">The type of entity for which the repository is responsible.</typeparam>
+    /// <typeparam name="TKey">The type of the primary key.</typeparam>
     public class RepositoryBase<TEntity, TKey> : IRepository<TEntity, TKey>
         where TEntity : class
         where TKey : struct
