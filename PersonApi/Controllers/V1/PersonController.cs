@@ -22,7 +22,7 @@ namespace PersonApi.Controllers.V1
     public class PersonController : ControllerBase
     {
         private readonly IRepository<Person, int> _repository;
-        private ProjectConfigurations _projectConfigurations { get; set; }
+        private readonly ProjectConfigurations _projectConfigurations;
 
         public PersonController(IRepository<Person, int> repository, IOptions<ProjectConfigurations> settings)
         {
