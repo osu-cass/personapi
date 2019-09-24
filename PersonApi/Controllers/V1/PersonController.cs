@@ -114,9 +114,9 @@ namespace PersonApi.Controllers.V1
 
             // This is the last filter we should apply, as the total number of results should always 
             // be as close to MaxNumberOfResults as possible, while still staying under.
-            if (filter.MaxNumberOfResults != null)
+            if (filter.MaxNumberOfResults.HasValue)
             {
-                persons = persons.Take((int)filter.MaxNumberOfResults);
+                persons = persons.Take(filter.MaxNumberOfResults.Value);
             }
 
             // Finally, if all of our filtering has left us without any results, return a 404 (Not Found).
