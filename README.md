@@ -1,3 +1,5 @@
+IMPORTANT: This repo is no longer under development and has been archived.
+
 # PersonAPI
 An example ASP.NET Core Web Api implementing:
 - Swashbuckle/Swagger/OpenAPI
